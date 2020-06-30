@@ -1,0 +1,45 @@
+#cloud-config
+
+package_update: true
+package_upgrade: true
+package_reboot_if_required: true
+
+packages:
+  - git
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg-agent
+  - software-properties-common
+
+write_files:
+  - path: /root/script_to_run.sh
+    permissions: '0755'
+    content: |
+      #!/bin/sh
+      git clone https://github.com/denniswambua/yaleo-platform.git
+      cd yaleo-platform
+      git clone --branch 2.10.1 https://github.com/mirumee/saleor.git 
+      cd nginx 
+      git clone --branch 2.10.0 https://github.com/mirumee/saleor-dashboard.git
+      git clone -- branch yaleo-branding https://github.com/denniswambua/saleor-storefront.git
+      cd -
+      
+      docker-compose build .
+      docker-compose run --rm api python3 manage.py migrate
+      docker-compose run --rm api python3 manage.py collectstatic --noinput
+
+      docker-compose up  -d
+
+runcmd:
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+  - add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+  - apt-get update -y
+  - apt-get install -y docker-ce docker-ce-cli containerd.io
+  - systemctl start docker
+  - systemctl enable docker
+
+final_message: "The system is finally up, after $UPTIME seconds"
+
+# Do not run the script in runcmd.  sync-endpoint tests do not timeout!
+# commands in runcmd are run from the top level /directory

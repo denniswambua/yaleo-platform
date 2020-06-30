@@ -1,0 +1,93 @@
+version: "3.4"
+
+services:
+    api:
+        ports:
+            - "8000:8000"
+        build:
+          context: ./saleor
+          dockerfile: ./Dockerfile
+        restart: unless-stopped        
+        networks:
+            - saleor-network
+        depends_on:
+            - db
+            - redis
+        volumes:
+          - ./saleor/saleor/:/app/saleor:Z
+          - ./saleor/templates/:/app/templates:Z
+          - ./saleor/tests/:/app/tests
+          # prevents overshadowing of build-time assets
+          - /app/saleor/static/assets
+          - /app/templates/templated_email/compiled
+          # shared volume between worker and api for media
+          - saleor-media:/app/media
+        env_file: common.env
+
+    worker:
+      build:
+        context: ./saleor
+        dockerfile: ./Dockerfile
+      command: celery -A saleor worker --app=saleor.celeryconf:app --loglevel=info
+      restart: unless-stopped
+      networks:
+        - saleor-network
+      env_file: common.env
+      depends_on:
+        - redis
+      volumes:
+        - ./saleor/saleor/:/app/saleor:Z,cached
+        - ./saleor/templates/:/app/templates:Z,cached
+        # prevents overshadowing of build-time assets
+        - /app/templates/templated_email/compiled
+        # shared volume between worker and api for media
+        - saleor-media:/app/media
+      
+    nginx:
+      build:
+        context: ./nginx
+        dockerfile: Dockerfile
+        args:
+          API_URI: 'http://yaleo.co.ke/graphql/'
+          APP_MOUNT_URI: '/dashboard/'
+      restart: unless-stopped
+      networks:
+        - saleor-network
+      ports:
+        - "80:80"
+        - "443:443"
+      depends_on:
+        - api
+      volumes: 
+        - saleor-media:/app/media
+
+    db:
+        image: postgres:11.1-alpine
+        restart: unless-stopped
+        networks:
+          - saleor-network
+        volumes:
+          - saleor-db:/var/lib/postgresql/data
+        env_file:
+          - db.env
+
+    redis:
+        image: library/redis:5.0-alpine
+        restart: unless-stopped
+        ports:
+            - 6379:6379
+        networks:
+            - saleor-network
+        volumes:
+            - saleor-redis:/data
+networks:
+    saleor-network:
+        driver: bridge
+
+volumes:
+    saleor-db:
+      driver: local
+    saleor-redis:
+      driver: local
+    saleor-media:
+      driver: local
