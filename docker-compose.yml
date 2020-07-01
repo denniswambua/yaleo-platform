@@ -44,12 +44,7 @@ services:
         - saleor-media:/app/media
       
     nginx:
-      build:
-        context: ./nginx
-        dockerfile: Dockerfile
-        args:
-          API_URI: 'http://yaleo.co.ke/graphql/'
-          APP_MOUNT_URI: '/dashboard/'
+      image: denniswambua/yaleo-frontend:latest
       restart: unless-stopped
       networks:
         - saleor-network
