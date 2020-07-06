@@ -7,7 +7,7 @@ services:
         build:
           context: ./saleor
           dockerfile: ./Dockerfile
-        restart: unless-stopped        
+        restart: unless-stopped
         networks:
             - saleor-network
         depends_on:
@@ -42,9 +42,15 @@ services:
         - /app/templates/templated_email/compiled
         # shared volume between worker and api for media
         - saleor-media:/app/media
-      
+
     nginx:
       image: denniswambua/yaleo-frontend:latest
+            #build:
+            # context: ./nginx
+            # dockerfile: Dockerfile
+            #args:
+            #API_URI: 'http://store.yaleo.co.ke/graphql/'
+            #APP_MOUNT_URI: '/dashboard/'
       restart: unless-stopped
       networks:
         - saleor-network
@@ -53,7 +59,7 @@ services:
         - "443:443"
       depends_on:
         - api
-      volumes: 
+      volumes:
         - saleor-media:/app/media
 
     db:
