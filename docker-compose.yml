@@ -44,12 +44,12 @@ services:
         - saleor-media:/app/media
 
     nginx:
-      image: denniswambua/yaleo-frontend:2.10.4
+      image: denniswambua/yaleo-frontend:ssl
             #build:
             # context: ./nginx
             # dockerfile: Dockerfile
             #args:
-            #API_URI: 'http://store.yaleo.co.ke/graphql/'
+            #API_URI: 'https://store.yaleo.co.ke/graphql/'
             #APP_MOUNT_URI: '/dashboard/'
       restart: unless-stopped
       command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
@@ -62,15 +62,15 @@ services:
         - api
       volumes:
         - saleor-media:/app/media
-        - letsencrypt:/etc/letsencrypt
-        - letsencrypt:/var/www/certbot
+        - ./data/certbot/conf:/etc/letsencrypt
+        - ./data/certbot/www:/var/www/certbot
 
     certbot:
       image: certbot/certbot
       entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
       volumes:
-        - letsencrypt:/etc/letsencrypt
-        - letsencrypt:/var/www/certbot
+        - ./data/certbot/conf:/etc/letsencrypt
+        - ./data/certbot/www:/var/www/certbot
 
     db:
         image: postgres:11.1-alpine
@@ -101,6 +101,4 @@ volumes:
   saleor-redis:
     driver: local
   saleor-media:
-    driver: local
-  letsencrypt:
     driver: local
