@@ -44,7 +44,7 @@ services:
         - saleor-media:/app/media
 
     nginx:
-      image: denniswambua/yaleo-frontend:latest
+      image: denniswambua/yaleo-frontend:2.10.4
             #build:
             # context: ./nginx
             # dockerfile: Dockerfile
