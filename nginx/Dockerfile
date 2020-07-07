@@ -22,7 +22,6 @@ RUN STATIC_URL=${STATIC_URL} API_URI=${API_URI} APP_MOUNT_URI=${APP_MOUNT_URI} n
 
 FROM nginx:mainline AS nginx
 WORKDIR /app
-COPY default.conf /etc/nginx/conf.d/default.conf
 COPY --from=storefront /app/dist/ /app
 COPY --from=dashboard /app-dashboard/build/ /app/
 

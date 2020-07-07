@@ -4,9 +4,7 @@ services:
     api:
         ports:
             - "8000:8000"
-        build:
-          context: ./saleor
-          dockerfile: ./Dockerfile
+        image: denniswambua/saleor:2.10.1
         restart: unless-stopped
         networks:
             - saleor-network
@@ -14,43 +12,48 @@ services:
             - db
             - redis
         volumes:
-          - ./saleor/saleor/:/app/saleor:Z
-          - ./saleor/templates/:/app/templates:Z
-          - ./saleor/tests/:/app/tests
           # prevents overshadowing of build-time assets
           - /app/saleor/static/assets
           - /app/templates/templated_email/compiled
           # shared volume between worker and api for media
           - saleor-media:/app/media
         env_file: common.env
+        environment:
+          - "SECRET_KEY=${SECRET_KEY}"
+          - "CELERY_BROKER_URL=${CELERY_BROKER_URL}"
+          - "DATABASE_URL=${DATABASE_URL}"
+          - "STOREFRONT_URL=${STOREFRONT_URL}"
+          - "DASHBOARD_URL=${DASHBOARD_URL}"
+          - "ALLOWED_CLIENT_HOSTS=${ALLOWED_CLIENT_HOSTS}"
+          - "ALLOWED_HOSTS=${ALLOWED_HOSTS}"
+          - "ENABLE_SSL=${ENABLE_SSL}"
 
     worker:
-      build:
-        context: ./saleor
-        dockerfile: ./Dockerfile
+      image: denniswambua/saleor:2.10.1
       command: celery -A saleor worker --app=saleor.celeryconf:app --loglevel=info
       restart: unless-stopped
       networks:
         - saleor-network
       env_file: common.env
+      environment:
+        - "SECRET_KEY=${SECRET_KEY}"
+        - "CELERY_BROKER_URL=${CELERY_BROKER_URL}"
+        - "DATABASE_URL=${DATABASE_URL}"
+        - "STOREFRONT_URL=${STOREFRONT_URL}"
+        - "DASHBOARD_URL=${DASHBOARD_URL}"
+        - "ALLOWED_CLIENT_HOSTS=${ALLOWED_CLIENT_HOSTS}"
+        - "ALLOWED_HOSTS=${ALLOWED_HOSTS}"
+        - "ENABLE_SSL=${ENABLE_SSL}"
       depends_on:
         - redis
       volumes:
-        - ./saleor/saleor/:/app/saleor:Z,cached
-        - ./saleor/templates/:/app/templates:Z,cached
         # prevents overshadowing of build-time assets
         - /app/templates/templated_email/compiled
         # shared volume between worker and api for media
         - saleor-media:/app/media
 
     nginx:
-      image: denniswambua/yaleo-frontend:ssl
-            #build:
-            # context: ./nginx
-            # dockerfile: Dockerfile
-            #args:
-            #API_URI: 'https://store.yaleo.co.ke/graphql/'
-            #APP_MOUNT_URI: '/dashboard/'
+      image: "denniswambua/yaleo-frontend:${ENVIRONMENT}"
       restart: unless-stopped
       command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
       networks:
@@ -64,6 +67,7 @@ services:
         - saleor-media:/app/media
         - ./data/certbot/conf:/etc/letsencrypt
         - ./data/certbot/www:/var/www/certbot
+        - "./nginx/${NGINX_CONFIG}.conf:/etc/nginx/conf.d/default.conf"
 
     certbot:
       image: certbot/certbot
